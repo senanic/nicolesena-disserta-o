@@ -2,11 +2,6 @@ getwd()
 setwd("C:\\Users\\User\\Documents\\perfil")
 
 a <- read.csv("deputadas_r.csv", fileEncoding = "UTF-8", stringsAsFactors = FALSE)
-install.packages("dplyr")
-library(dplyr)
-install.packages("ggplot2")
-library(ggplot2)
-
 
 vlab <- names(a)
 names(a) <- paste0("b", 1:ncol(a))
@@ -42,7 +37,7 @@ a$tempo <- a$b11
 attr(a$tempo, "label") <- "Tempo na política"
 
 
-
+########### ANALISANDO MULHERES DAS DIREITAS
 #idade
 media <- mean(a$b2)
 print(media)
@@ -50,6 +45,7 @@ print(media)
 mediana <- median(a$b2)
 print(mediana)
 
+library(ggplot2)
 
 ggplot(a, aes(x = b2)) +
   geom_histogram(binwidth = 5, fill = "lightblue", color = "black") +
@@ -222,7 +218,8 @@ legend("topright", legend = c("Média", "Mediana"),
 
 
 #cruzamentos e distribuições
-
+install.packages("dplyr")
+library(dplyr)
 
 # Converter as variáveis para fator, se ainda não estiverem
 a$partido <- as.factor(a$partido)
@@ -231,7 +228,6 @@ a$raça <- as.factor(a$raça)
 # Filtrar os dados para remover valores NA
 dados_filtrados <- a %>%
   filter(!is.na(partido), !is.na(raça))
-
 
 # Criar um gráfico de barras agrupadas
 ggplot(dados_filtrados, aes(x = partido, fill = raça)) +
@@ -317,6 +313,8 @@ ggplot(dados_filtrados, aes(x = classesocial, fill = partido)) +
   theme_minimal()
 
 
+
+######## DIREITA TRADICIONAL E NEOCONSERVADORA
 # Contagem das mulheres nas duas classificações
 direita_tradicional <- sum(a$classificação == "Direita tradicional")
 neoconservadora <- sum(a$classificação == "Neoconservadora")
@@ -357,8 +355,16 @@ ggplot(contagem_partidos, aes(x = partido, y = contagem, fill = classificação)
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+# Teste de normalidade para Direita Tradicional
+shapiro_direita_tradicional <- shapiro.test(a$tempo[a$classificação == "Direita tradicional"])
+print(shapiro_direita_tradicional)
 
-###########diferenciando os perfis
+# Teste de normalidade para Neoconservadora
+shapiro_neoconservadora <- shapiro.test(a$tempo[a$classificação == "Neoconservadora"])
+print(shapiro_neoconservadora)
+
+
+###########diferenciando os perfis: direita tradicional e neoconservadora
 
 #partido
 # Contagem de partidos por classificação direita tradicional e neoconservadora
@@ -378,25 +384,24 @@ if(teste_qui_quadrado$p.value < 0.05) {
   print("Não há uma associação significativa entre partido e a classificação")
 }
 
-# Contagem de partidos por classificação direita tradicional e neoconservadora
-contagem_partidos <- a %>%
-  group_by(partido, classificação) %>%
-  summarise(contagem = n()) %>%
-  ungroup()
+# Contagem de partidos por classificação
+contagem_partidos <- table(a$partido, a$classificação)
 
-# Plotar o gráfico de barras
-ggplot(contagem_partidos, aes(x = partido, y = contagem, fill = classificação)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(
-    title = "Comparação dos Partidos entre Direita Tradicional e Neoconservadora",
-    x = "Partidos",
-    y = "Contagem",
-    fill = "Classificação"
-  ) +
+# Realizar o teste qui-quadrado para verificar se a distribuição dos partidos é independente entre as classificações 
+teste_qui_quadrado <- chisq.test(contagem_partidos)
+
+# Exibir o resultado do teste qui-quadrado
+print(teste_qui_quadrado)
+
+# Criar gráfico de barras agrupadas
+ggplot(a, aes(x = partido, fill = classificação)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribuição de Partidos por Classificação",
+       x = "Partido",
+       y = "Contagem",
+       fill = "Classificação") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 #estado
 
@@ -464,25 +469,20 @@ if(teste_qui_quadrado_escolaridade$p.value < 0.05) {
 
 # idade
 
+# Teste de normalidade para Direita Tradicional
+shapiro_direita_tradicional <- shapiro.test(a$idade[a$classificação == "Direita tradicional"])
+print(shapiro_direita_tradicional)
+
+# Teste de normalidade para Neoconservadora
+shapiro_neoconservadora <- shapiro.test(a$idade[a$classificação == "Neoconservadora"])
+print(shapiro_neoconservadora)
 
 direita_tradicional <- a %>% filter(classificação == "Direita Tradicional")
 neoconservadora <- a %>% filter(classificação == "Neoconservadora")
 
-# Teste de Mann-Whitney para comparar a idade entre Direita Tradicional e Neoconservadora
-resultado_mann_whitney <- wilcox.test(idade ~ classificação, data = a)
-
-# Exibir o resultado
-print(resultado_mann_whitney)
-
-# Exibir o resultado do teste
-resultado_mann_whitney <- wilcox.test(idade ~ classificação, data = a)
-
-# Verificar se o p-valor é menor que 0.05 (nível de significância típico)
-if (resultado_mann_whitney$p.value < 0.05) {
-  message("A diferença nas idades entre os grupos Direita Tradicional e Neoconservadora é estatisticamente significativa (p < 0.05).")
-} else {
-  message("A diferença nas idades entre os grupos Direita Tradicional e Neoconservadora NÃO é estatisticamente significativa (p >= 0.05).")
-}
+# Realizar o teste t de Student para comparar a idade entre os dois grupos
+teste_t_idade <- t.test(idade ~ classificação, data = a)
+print(teste_t_idade)
 
 
 
@@ -518,8 +518,16 @@ if(teste_chi_classesocial$p.value < 0.05) {
   print("Não há uma associação significativa entre classe social e a classificação")
 }
 
+
 #tempo na política
 
+# Teste de normalidade para Direita Tradicional no tempo na política
+shapiro_direita_tradicional <- shapiro.test(a$tempo[a$classificação == "Direita tradicional"])
+print(shapiro_direita_tradicional)
+
+# Teste de normalidade para Neoconservadora no tempo na política
+shapiro_neoconservadora <- shapiro.test(a$tempo[a$classificação == "Neoconservadora"])
+print(shapiro_neoconservadora)
 
 # Teste de Mann-Whitney para comparar Tempo na Política entre Direita Tradicional e Neoconservadora
 teste_mannwhitney <- wilcox.test(tempo ~ classificação, data = a)
@@ -533,9 +541,6 @@ if (teste_mannwhitney$p.value < 0.05) {
 } else {
   message("Não há uma diferença estatisticamente significativa no Tempo na Política entre Direita Tradicional e Neoconservadora (p >= 0.05).")
 }
-
-
-#estado civil
 
 
 # Teste de Qui-Quadrado para comparar Estado Civil entre Direita Tradicional e Neoconservadora
